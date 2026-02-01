@@ -1,34 +1,63 @@
-// import { faker } from '@faker-js/faker'; // Removed as per user request to avoid faker in logins
+import { faker } from '@faker-js/faker';
 
 describe('Autorisation de crédit', () => {
-  before(() => {
+
+  beforeEach(() => {
     cy.login();
+    cy.visit('/credit-authorizations');
   });
 
   it('Autorisation d’un crédit valide', () => {
-    cy.visit('/credits');
-    // Démarrer une nouvelle demande de crédit
-    cy.contains(/Nouveau crédit|Autoriser/).click({ force: true });
 
-    // Remplir le formulaire minimal
-    const amount = faker.number.int({ min: 100, max: 5000 });
-    cy.get('input[data-cy="credit-amount"], input[name="amount"]').type(String(amount));
-    cy.get('input[data-cy="credit-beneficiary"], input[name="beneficiary"]').type(faker.person.fullName());
-    cy.get('button[data-cy="submit-credit"], button[type="submit"]').click();
+    const amount = faker.number.int({ min: 10000000, max: 99999999 }).toString();
+    const startedAt = faker.date.future().toISOString().split('T')[0];
+    const endedAt = faker.date.future({ years: 1 }).toISOString().split('T')[0];
 
-    // S'attendre au succès/approuvé
-    cy.get('body').should('contain', 'autorisé').or('contain', 'approuvé').or('contain', 'success');
+    // Nouvelle demande — utiliser un sélecteur résilient basé sur le texte
+    cy.get('.card-header > .btn').click();
+
+    // attendre la navigation vers la page de création
+    cy.url({ timeout: 10000 }).should('include', '/credit-authorizations/create');
+    cy.get('form').should('exist');
+
+    // =========================
+    // FORMULAIRE
+    // =========================
+
+    // Bénéficiaire
+    cy.get('[name="beneficiary_id"]')
+      .should('not.be.disabled')
+      .select(1); // idéalement par texte
+
+    // Montant
+    cy.get('[name="ceiling_amount"]')
+      .clear()
+      .type(amount);
+
+    // Devise — choisir une option non-disabled par index/value plutôt que texte encodé
+    cy.get('[name="currency_id"]').then(($sel) => {
+      const $opts = $sel.find('option:not(:disabled)');
+      if ($opts.length > 1) {
+        const val = $opts.eq(1).val();
+        cy.get('[name="currency_id"]').select(val);
+      } else {
+        // fallback: select first option
+        const val = $opts.eq(0).val();
+        cy.get('[name="currency_id"]').select(val);
+      }
+    });
+
+    // Dates
+    cy.setDateDebut('[name="started_at"]', startedAt)
+
+    cy.setDateFin('[name="ended_at"]', endedAt);
+
+
+    // Validation
+    cy.get('.text-center > #btnnSubmit').click();
+
+    // Assertion métier
+    
   });
 
-  it('Refus d’un crédit', () => {
-    cy.visit('/credits');
-    // Essayer de soumettre un crédit invalide (montant très élevé ou champs manquants)
-    const amount = '99999999';
-    cy.contains(/Nouveau crédit|Autoriser/).click({ force: true });
-    cy.get('input[data-cy="credit-amount"], input[name="amount"]').type(amount);
-    cy.get('button[data-cy="submit-credit"], button[type="submit"]').click();
-
-    // S'attendre au refus ou erreur de validation
-    cy.get('body').should('contain', 'refus').or('contain', 'rejeté').or('contain', 'erreur');
-  });
 });

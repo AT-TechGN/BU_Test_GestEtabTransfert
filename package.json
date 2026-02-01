@@ -1,0 +1,15 @@
+{
+  "name": "bu-test-geste-tab-transfert",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "install-deps": "npm install",
+    "generate-e2e-md-report": "node scripts/generate-e2e-report.js",
+    "generate-e2e-pdf": "node scripts/generate-e2e-report-pdf.js",
+    "generate-e2e-html": "node scripts/generate-e2e-html-report.js"
+  },
+  "dependencies": {
+    "markdown-it": "^13.0.1",
+    "puppeteer": "^19.11.1"
+  }
+}
